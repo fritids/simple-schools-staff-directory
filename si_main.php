@@ -4,7 +4,7 @@ Plugin Name: Simple Schools Staff Directory
 Description: Provides a simple staff directory with photos.
 Plugin URI: http://www.simpleintranet.org/simple-schools
 Description: Provides a simple searchable staff directory with photos, staff and away from school widgets.
-Version: 1.0
+Version: 1.1
 Author: Simple Schools
 Author URI: http://www.simpleintranet.org/simple-schools
 License: GPL2
@@ -1105,10 +1105,12 @@ echo '<form method="get" id="employeesearchform" action="'.get_permalink($id).'"
 	<select name="type" id="type">';
 $t=ucfirst(	$_GET['type']);
 if ($t!='') { ?><option value="<?php echo $t;?>" selected="selected"><?php echo $t;?></option><?php } 
-$name1= __('Name','simpleschools');
+$name1= __('First Name','simpleintranet');
+$name2= __('Last Name','simpleintranet');
 $title1= __('Title','simpleschools');
 $dept1= __('Department','simpleschools');
-echo ' <option value="Name">'.$name1.'</option>
+echo ' <option value="First Name">'.$name1.'</option>
+<option value="Last Name">'.$name2.'</option>
 	  <option value="Title">'.$title1.'</option>
 	  <option value="Department">'.$dept1.'</option>';
 foreach ($wp_roles->role_names as $roledex => $rolename) {
@@ -1134,14 +1136,20 @@ $page = (get_query_var('page')) ? get_query_var('page') : 1;
 $offset = ($page - 1) * $number;
 
 // prepare arguments
-if ($type=="" || $type=="Name" || $type=="name"){
+// prepare arguments
+
+if ($type==""){
 $args  = array(
-// order results by display_name
-'orderby' => 'display_name',
-'order' => 'ASC',
 'number' => $number,
 'offset' => $offset,
-// check for two meta_values
+);
+$authors = get_users($args);
+}
+
+elseif ($type=="First Name"){
+$args  = array(
+'number' => $number,
+'offset' => $offset,
 'meta_query' => array(
 					  'relation' => 'OR',
 					  
@@ -1150,22 +1158,30 @@ array(
         'value' => $name,	
 		'compare' => 'IN',
         ),	 
-array(      
-		'key' => 'last_name',
-        'value' => $name,	
-		'compare' => 'IN',        ),	
-
 ));
 $authors = get_users($args);
 }
 
-if ($type=="Title"){
+elseif ($type=="Last Name"){
 $args  = array(
-'fields'    => 'all_with_meta',
 'number' => $number,
 'offset' => $offset,
-'orderby' => 'display_name',
-'order' => 'ASC',
+'meta_query' => array(
+					  'relation' => 'OR',
+					  
+array(      
+		'key' => 'last_name',
+        'value' => $name,	
+		'compare' => 'IN',
+        ),	 
+));
+$authors = get_users($args);
+}
+
+elseif ($type=="Title"){
+$args  = array(
+'number' => $number,
+'offset' => $offset,
 'meta_query' => array(
 					  'relation' => 'OR',				  
 
@@ -1184,13 +1200,10 @@ usort($authors, "si_cmp");
 
 }
 
-if ($type=="Department"){
+elseif ($type=="Department"){
 $args  = array(
-'fields'    => 'all_with_meta',
 'number' => $number,
 'offset' => $offset,
-'orderby' => 'display_name',
-'order' => 'ASC',
 'meta_query' => array(
 					  'relation' => 'OR',				  
 
@@ -1208,25 +1221,23 @@ function si_cmp($a, $b){
 usort($authors, "si_cmp");
 }
 
-if ($type!="Name" && $type!="Title" && $type!="Department") {
+else {
 $args  = array(
 'role' => $type,
-'orderby' => 'display_name',
-'order' => 'ASC',
 'number' => $number,
 'offset' => $offset,
 // check for two meta_values
 'meta_query' => array(
-					  'relation' => 'OR',				  
-
+					  'relation' => 'OR',	  
 array(      
 		'key' => $type,
         'value' => $name,
-		'compare' => 'LIKE',
+		'compare' => 'IN',
         ),
 ));
 $authors = get_users($args);
 }
+
 // Create the WP_User_Query object
 $wp_user_query = new WP_User_Query($args);
 // pagination
